@@ -1,7 +1,7 @@
 export interface AuthenticatedUser {
   userId: string;
   identifiers: { type: 'email' | 'sms'; value: string }[];
-  groups: { type: string; id: string; name: string }[];
+  groups: { type: string; id?: string; groupId?: string; name: string }[];
   role?: string;
 }
 
@@ -10,10 +10,17 @@ export interface InvitationTarget {
   value: string;
 }
 
+/**
+ * InvitationGroup from API responses
+ * This matches the MemberGroups table structure from the API
+ */
 export interface InvitationGroup {
-  id: string;
-  type: string;
-  name: string;
+  id: string;          // Vortex internal UUID
+  accountId: string;   // Vortex account ID
+  groupId: string;     // Customer's group ID (the ID they provided to Vortex)
+  type: string;        // Group type (e.g., "workspace", "team")
+  name: string;        // Group name
+  createdAt: string;   // ISO 8601 timestamp when the group was created
 }
 
 export interface InvitationResult {
