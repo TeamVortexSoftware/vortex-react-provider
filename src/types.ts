@@ -47,10 +47,18 @@ export interface InvitationResult {
 
 export interface VortexConfig {
   apiBaseUrl?: string;
+  backendApiUrl?: string; // Optional separate backend API host (e.g., for non-Next.js setups)
   refreshJwtInterval?: number;
   defaultGroups?: InvitationGroup[];
   onError?: (error: Error) => void;
   onJwtRefresh?: (jwt: string) => void;
+  // Backoff configuration for JWT refresh failures (optional, has sensible defaults)
+  jwtBackoff?: {
+    initialDelayMs?: number;  // Initial retry delay (default: 1000ms)
+    maxDelayMs?: number;       // Maximum retry delay (default: 60000ms = 1 minute)
+    multiplier?: number;       // Backoff multiplier (default: 2)
+    maxRetries?: number;       // Maximum number of retries before giving up (default: 5)
+  };
 }
 
 export interface JwtContext {

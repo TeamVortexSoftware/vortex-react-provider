@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useReducer, useRef, useMemo } from 'react';
+import React from 'react';
+import { useCallback, useEffect, useReducer, useRef, useMemo } from 'react';
 import { VortexContext } from './VortexContext';
 import { validateVortexApiConfiguration } from './utils';
 import type {
@@ -19,19 +20,25 @@ interface VortexState {
   user: AuthenticatedUser | null;
   isLoading: boolean;
   error: Error | null;
+  jwtRetryCount: number;
+  jwtRetryDelayMs: number;
 }
 
 type VortexAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_JWT'; payload: { jwt: string; user: AuthenticatedUser | null } }
   | { type: 'SET_ERROR'; payload: Error | null }
-  | { type: 'CLEAR_AUTH' };
+  | { type: 'CLEAR_AUTH' }
+  | { type: 'INCREMENT_RETRY'; payload: number }
+  | { type: 'RESET_RETRY' };
 
 const initialState: VortexState = {
   jwt: null,
   user: null,
   isLoading: false,
   error: null,
+  jwtRetryCount: 0,
+  jwtRetryDelayMs: 0,
 };
 
 function vortexReducer(state: VortexState, action: VortexAction): VortexState {
@@ -45,11 +52,17 @@ function vortexReducer(state: VortexState, action: VortexAction): VortexState {
         user: action.payload.user,
         isLoading: false,
         error: null,
+        jwtRetryCount: 0,
+        jwtRetryDelayMs: 0,
       };
     case 'SET_ERROR':
       return { ...state, error: action.payload, isLoading: false };
     case 'CLEAR_AUTH':
-      return { ...state, jwt: null, user: null, error: null };
+      return { ...state, jwt: null, user: null, error: null, jwtRetryCount: 0, jwtRetryDelayMs: 0 };
+    case 'INCREMENT_RETRY':
+      return { ...state, jwtRetryCount: state.jwtRetryCount + 1, jwtRetryDelayMs: action.payload };
+    case 'RESET_RETRY':
+      return { ...state, jwtRetryCount: 0, jwtRetryDelayMs: 0 };
     default:
       return state;
   }
@@ -64,11 +77,18 @@ export function VortexProvider({ children, config = {} }: VortexProviderProps) {
     const finalConfig = {
       apiBaseUrl: '/api/vortex',
       refreshJwtInterval: 30 * 60 * 1000, // 30 minutes
+      jwtBackoff: {
+        initialDelayMs: 1000,
+        maxDelayMs: 60000,
+        multiplier: 2,
+        maxRetries: 5,
+        ...config.jwtBackoff,
+      },
       ...config,
     };
 
     // Validate API configuration in development
-    validateVortexApiConfiguration(finalConfig.apiBaseUrl!);
+    validateVortexApiConfiguration(finalConfig.apiBaseUrl!, finalConfig.backendApiUrl);
 
     return finalConfig;
   }, [config]);
@@ -76,10 +96,15 @@ export function VortexProvider({ children, config = {} }: VortexProviderProps) {
   // Helper function to make API calls
   const apiCall = useCallback(async <T = unknown>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    useBackendUrl: boolean = false
   ): Promise<T> => {
     try {
-      const url = `${defaultConfig.apiBaseUrl}${endpoint}`;
+      // Use backendApiUrl for backend-specific calls (like JWT), otherwise use apiBaseUrl
+      const baseUrl = useBackendUrl && defaultConfig.backendApiUrl
+        ? defaultConfig.backendApiUrl
+        : defaultConfig.apiBaseUrl;
+      const url = `${baseUrl}${endpoint}`;
 
       const response = await fetch(url, {
         headers: {
@@ -103,7 +128,7 @@ export function VortexProvider({ children, config = {} }: VortexProviderProps) {
     }
   }, [defaultConfig]);
 
-  // JWT management functions
+  // JWT management functions with exponential backoff
   const refreshJwt = useCallback(async (context?: {
     widgetId?: string;
     groupId?: string;
@@ -115,7 +140,7 @@ export function VortexProvider({ children, config = {} }: VortexProviderProps) {
       const response = await apiCall<{ jwt: string }>('/jwt', {
         method: 'POST',
         body: context ? JSON.stringify({ context }) : undefined,
-      });
+      }, true); // Use backend URL for JWT calls
 
       // Decode JWT to extract user info (basic extraction - in production you might want a proper JWT library)
       let user: AuthenticatedUser | null = null;
@@ -144,9 +169,42 @@ export function VortexProvider({ children, config = {} }: VortexProviderProps) {
       }
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Failed to refresh JWT');
-      dispatch({ type: 'SET_ERROR', payload: err });
+
+      // Implement exponential backoff
+      const backoffConfig = defaultConfig.jwtBackoff!;
+      const maxRetries = backoffConfig.maxRetries!;
+
+      if (state.jwtRetryCount < maxRetries) {
+        // Calculate next delay with exponential backoff
+        const nextDelay = Math.min(
+          backoffConfig.initialDelayMs! * Math.pow(backoffConfig.multiplier!, state.jwtRetryCount),
+          backoffConfig.maxDelayMs!
+        );
+
+        dispatch({ type: 'INCREMENT_RETRY', payload: nextDelay });
+
+        console.warn(
+          `JWT refresh failed (attempt ${state.jwtRetryCount + 1}/${maxRetries}). ` +
+          `Retrying in ${nextDelay}ms...`,
+          err
+        );
+
+        // Schedule retry with backoff
+        if (refreshTimerRef.current) {
+          clearTimeout(refreshTimerRef.current);
+        }
+        refreshTimerRef.current = setTimeout(() => refreshJwt(context), nextDelay);
+      } else {
+        // Max retries exceeded
+        console.error(
+          `JWT refresh failed after ${maxRetries} attempts. Giving up.`,
+          err
+        );
+        dispatch({ type: 'SET_ERROR', payload: err });
+        dispatch({ type: 'RESET_RETRY' });
+      }
     }
-  }, [apiCall, defaultConfig]);
+  }, [apiCall, defaultConfig, state.jwtRetryCount, state.jwtRetryDelayMs]);
 
   const clearAuth = useCallback(() => {
     if (refreshTimerRef.current) {

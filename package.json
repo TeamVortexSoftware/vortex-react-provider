@@ -2,7 +2,7 @@
   "name": "@teamvortexsoftware/vortex-react-provider",
   "description": "React provider for seamless Vortex integration with Next.js SDK",
   "author": "@teamvortexsoftware",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "sideEffects": false,
   "files": [
     "dist/**"

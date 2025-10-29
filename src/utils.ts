@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * Validates that the apiBaseUrl is correctly configured for the expected Next.js route structure
+ * Validates that the apiBaseUrl is correctly configured for the expected route structure
  * This helps developers ensure their backend routes match the provider expectations
  */
-export function validateVortexApiConfiguration(apiBaseUrl: string): void {
-  const expectedPaths = [
-    '/jwt',
+export function validateVortexApiConfiguration(apiBaseUrl: string, backendApiUrl?: string): void {
+  const jwtEndpoints = ['/jwt'];
+  const invitationEndpoints = [
     '/invitations',
     '/invitations/accept',
   ];
@@ -14,10 +14,24 @@ export function validateVortexApiConfiguration(apiBaseUrl: string): void {
   // In development mode, we can provide helpful warnings
   if (process.env.NODE_ENV === 'development') {
     console.info('🔍 Vortex React Provider expects these API endpoints:');
-    expectedPaths.forEach(path => {
-      console.info(`  ${apiBaseUrl}${path}`);
-    });
-    console.info('📖 See the Next.js SDK README for exact file structure requirements.');
+
+    if (backendApiUrl) {
+      console.info('\n  JWT endpoints (using backendApiUrl):');
+      jwtEndpoints.forEach(path => {
+        console.info(`    ${backendApiUrl}${path}`);
+      });
+      console.info('\n  Invitation endpoints (using apiBaseUrl):');
+      invitationEndpoints.forEach(path => {
+        console.info(`    ${apiBaseUrl}${path}`);
+      });
+    } else {
+      console.info('  All endpoints (using apiBaseUrl):');
+      [...jwtEndpoints, ...invitationEndpoints].forEach(path => {
+        console.info(`    ${apiBaseUrl}${path}`);
+      });
+    }
+
+    console.info('\n📖 See the Vortex SDK documentation for exact API requirements.');
   }
 }
 
