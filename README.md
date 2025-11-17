@@ -72,7 +72,10 @@ export function UserProfile() {
   return (
     <div>
       <h2>Welcome, {user.userId}!</h2>
-      <p>Groups: {user.groups.map(g => g.name).join(', ')}</p>
+      <p>Email: {user.userEmail}</p>
+      {user.adminScopes?.includes('autoJoin') && <p>Auto-Join Admin: Yes</p>}
+      {/* Legacy fields still available for backward compatibility */}
+      {user.groups && <p>Groups: {user.groups.map(g => g.name).join(', ')}</p>}
     </div>
   );
 }
@@ -215,6 +218,29 @@ import type {
   ApiResponse,
 } from '@teamvortexsoftware/vortex-react-provider';
 ```
+
+### AuthenticatedUser Type
+
+The `AuthenticatedUser` type supports both the new simplified JWT format and the legacy format for backward compatibility:
+
+**New Format (Recommended):**
+```typescript
+interface AuthenticatedUser {
+  userId: string;
+  userEmail?: string;                    // User's email address
+  adminScopes?: string[];                // Admin scopes (e.g., ['autoJoin'])
+  // Legacy fields (optional for backward compatibility)
+  identifiers?: { type: 'email' | 'sms'; value: string }[];
+  groups?: { type: string; id?: string; groupId?: string; name: string }[];
+  role?: string;
+}
+```
+
+The new format is simpler and more straightforward. When your backend SDK generates JWTs with `userEmail` and `adminScopes`, the React provider will automatically extract these fields and make them available through the hooks.
+
+**Legacy Format Support:**
+
+For backward compatibility, the provider still supports JWTs with the legacy format containing `identifiers`, `groups`, and `role` fields. These will be automatically extracted and available on the user object.
 
 ## Integration with Vortex Invite Component
 

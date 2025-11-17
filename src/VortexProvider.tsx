@@ -130,9 +130,9 @@ export function VortexProvider({ children, config = {} }: VortexProviderProps) {
 
   // JWT management functions with exponential backoff
   const refreshJwt = useCallback(async (context?: {
-    widgetId?: string;
-    groupId?: string;
-    groupType?: string;
+    componentId?: string;
+    scope?: string;
+    scopeType?: string;
   }) => {
     dispatch({ type: 'SET_LOADING', payload: true });
 
@@ -148,8 +148,11 @@ export function VortexProvider({ children, config = {} }: VortexProviderProps) {
         const payload = JSON.parse(atob(response.jwt.split('.')[1]));
         user = {
           userId: payload.userId,
-          identifiers: payload.identifiers || [],
-          groups: payload.groups || defaultConfig.defaultGroups || [],
+          userEmail: payload.userEmail,
+          adminScopes: payload.adminScopes,
+          // Legacy fields for backward compatibility
+          identifiers: payload.identifiers,
+          groups: payload.groups || defaultConfig.defaultGroups,
           role: payload.role,
         };
       } catch (decodeError) {

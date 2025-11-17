@@ -1,7 +1,10 @@
 export interface AuthenticatedUser {
   userId: string;
-  identifiers: { type: 'email' | 'sms'; value: string }[];
-  groups: { type: string; id?: string; groupId?: string; name: string }[];
+  userEmail?: string;
+  adminScopes?: string[];
+  // Legacy fields (deprecated but still supported for backward compatibility)
+  identifiers?: { type: 'email' | 'sms'; value: string }[];
+  groups?: { type: string; id?: string; groupId?: string; name: string }[];
   role?: string;
 }
 
@@ -62,9 +65,9 @@ export interface VortexConfig {
 }
 
 export interface JwtContext {
-  widgetId?: string;
-  groupId?: string;
-  groupType?: string;
+  componentId?: string;
+  scope?: string;
+  scopeType?: string;
 }
 
 export interface VortexContextValue {
