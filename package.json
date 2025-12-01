@@ -20,10 +20,10 @@
     "prepack": "echo 'This package should not be published. Use publish:stg or publish:prod' && exit 1",
     "build:stg": "pnpm run distclean && pnpm run build && mkdir -p dist.d/stg && mv dist dist.d/stg && echo && echo 'Build in ./dist.d/stg'",
     "prepublish:stg": "cp ./LICENSE ./README.md ./dist.d/stg/ && jq '.name = \"@teamvortexsoftware/vortex-react-provider-stg\" | .description = \"Vortex React Provider (STG)\" | del(.devDependencies.\"@teamvortexsoftware/eslint-config\") | del(.devDependencies.\"@teamvortexsoftware/typescript-config\") | del(.scripts.prepack)' ./package.json > ./dist.d/stg/package.json",
-    "publish:stg": "pnpm run prepublish:stg && npm publish --userconfig ../../.npmrc --access restricted ./dist.d/stg",
+    "publish:stg": "pnpm run prepublish:stg && pnpm publish --access restricted ./dist.d/stg",
     "build:prod": "pnpm run distclean && pnpm run build && mkdir -p dist.d/prod && mv dist dist.d/prod && echo && echo 'Build in ./dist.d/prod'",
     "prepublish:prod": "cp ./LICENSE ./README.md ./dist.d/prod/ && jq 'del(.devDependencies.\"@teamvortexsoftware/eslint-config\") | del(.devDependencies.\"@teamvortexsoftware/typescript-config\") | del(.scripts.prepack)' ./package.json > ./dist.d/prod/package.json",
-    "publish:prod": "pnpm run prepublish:prod && npm publish --userconfig ../../.npmrc --access public ./dist.d/prod",
+    "publish:prod": "pnpm run prepublish:prod && pnpm publish --access public ./dist.d/prod",
     "build": "tsc",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
     "distclean": "rm -rf ./dist ./dist.d",
@@ -66,7 +66,7 @@
     "react-dom": ">=16.8.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.24.0",
+    "@eslint/js": "catalog:",
     "@jest/globals": "29.7.0",
     "@teamvortexsoftware/eslint-config": "workspace:*",
     "@teamvortexsoftware/typescript-config": "workspace:*",
@@ -74,12 +74,12 @@
     "@testing-library/react": "16.2.0",
     "@types/react": "18.3.23",
     "@types/react-dom": "18.3.5",
-    "eslint": "^9.24.0",
+    "eslint": "catalog:",
     "jest": "29.7.0",
     "jest-environment-jsdom": "29.7.0",
     "jest-junit": "16.0.0",
     "ts-jest": "^29.4.3",
-    "typescript-eslint": "^8.30.1"
+    "typescript-eslint": "catalog:"
   },
   "jest-junit": {
     "outputDirectory": "reports",
