@@ -73,9 +73,9 @@ export function UserProfile() {
     <div>
       <h2>Welcome, {user.userId}!</h2>
       <p>Email: {user.userEmail}</p>
-      {user.adminScopes?.includes('autoJoin') && <p>Auto-Join Admin: Yes</p>}
+      {user.adminScopes?.includes('autojoin') && <p>Autojoin Admin: Yes</p>}
       {/* Legacy fields still available for backward compatibility */}
-      {user.groups && <p>Groups: {user.groups.map(g => g.name).join(', ')}</p>}
+      {user.groups && <p>Groups: {user.groups.map((g) => g.name).join(', ')}</p>}
     </div>
   );
 }
@@ -88,12 +88,7 @@ import { useInvitations } from '@teamvortexsoftware/vortex-react-provider';
 
 export function InvitationManager() {
   const [invitations, setInvitations] = useState([]);
-  const {
-    getInvitationsByTarget,
-    revokeInvitation,
-    isLoading,
-    getError
-  } = useInvitations();
+  const { getInvitationsByTarget, revokeInvitation, isLoading, getError } = useInvitations();
 
   const loadInvitations = async () => {
     try {
@@ -120,7 +115,7 @@ export function InvitationManager() {
         Load Invitations
       </button>
 
-      {invitations.map(invitation => (
+      {invitations.map((invitation) => (
         <div key={invitation.id}>
           <p>{invitation.status}</p>
           <button
@@ -143,10 +138,12 @@ export function InvitationManager() {
 Main provider component that manages authentication state and API communication.
 
 **Props:**
+
 - `children: React.ReactNode` - Child components
 - `config?: VortexConfig` - Optional configuration object
 
 **Configuration Options:**
+
 - `apiBaseUrl?: string` - Base URL for API calls (default: '/api/vortex')
 - `refreshJwtInterval?: number` - JWT refresh interval in milliseconds (default: 30 minutes)
 - `defaultGroups?: InvitationGroup[]` - Default groups for new users
@@ -166,6 +163,7 @@ Main hook providing access to all functionality.
 Hook focused on authentication state.
 
 **Returns:**
+
 - `jwt: string | null` - Current JWT token
 - `user: AuthenticatedUser | null` - Current user data
 - `isAuthenticated: boolean` - Authentication status
@@ -179,6 +177,7 @@ Hook focused on authentication state.
 Hook for JWT-specific utilities.
 
 **Returns:**
+
 - All authentication state from useVortexAuth
 - `isExpiringSoon: (bufferMinutes?: number) => boolean` - Check if JWT is expiring
 - `refreshIfNeeded: (bufferMinutes?: number) => Promise<void>` - Refresh if expiring soon
@@ -188,6 +187,7 @@ Hook for JWT-specific utilities.
 Hook for invitation management with built-in loading states.
 
 **Returns:**
+
 - `loading: Record<string, boolean>` - Loading states by operation
 - `errors: Record<string, Error | null>` - Error states by operation
 - `isAuthenticated: boolean` - Authentication status
@@ -224,11 +224,12 @@ import type {
 The `AuthenticatedUser` type supports both the new simplified JWT format and the legacy format for backward compatibility:
 
 **New Format (Recommended):**
+
 ```typescript
 interface AuthenticatedUser {
   userId: string;
-  userEmail?: string;                    // User's email address
-  adminScopes?: string[];                // Admin scopes (e.g., ['autoJoin'])
+  userEmail?: string; // User's email address
+  adminScopes?: string[]; // Admin scopes (e.g., ['autojoin'])
   // Legacy fields (optional for backward compatibility)
   identifiers?: { type: 'email' | 'sms'; value: string }[];
   groups?: { type: string; id?: string; groupId?: string; name: string }[];
@@ -258,8 +259,8 @@ export function InvitePage() {
     <div>
       {isAuthenticated ? (
         <VortexInvite
-          // The VortexInvite component can now access authentication
-          // state from the provider context automatically
+        // The VortexInvite component can now access authentication
+        // state from the provider context automatically
         />
       ) : (
         <div>Please authenticate to send invitations</div>
@@ -302,9 +303,7 @@ function InvitationComponent() {
       {invitationError && (
         <div className="error">
           {invitationError.message}
-          <button onClick={() => clearError('revoke-invitation-123')}>
-            Clear Error
-          </button>
+          <button onClick={() => clearError('revoke-invitation-123')}>Clear Error</button>
         </div>
       )}
     </div>
