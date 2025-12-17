@@ -71,6 +71,7 @@ function vortexReducer(state: VortexState, action: VortexAction): VortexState {
 export function VortexProvider({ children, config = {} }: VortexProviderProps) {
   const [state, dispatch] = useReducer(vortexReducer, initialState);
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastContextRef = useRef<{ componentId?: string; scope?: string; scopeType?: string } | undefined>(undefined);
 
   // Default configuration
   const defaultConfig: VortexConfig = useMemo(() => {
@@ -134,6 +135,11 @@ export function VortexProvider({ children, config = {} }: VortexProviderProps) {
     scope?: string;
     scopeType?: string;
   }) => {
+    // Store context for auto-refresh (only update if context is provided)
+    if (context) {
+      lastContextRef.current = context;
+    }
+
     dispatch({ type: 'SET_LOADING', payload: true });
 
     try {
@@ -162,13 +168,13 @@ export function VortexProvider({ children, config = {} }: VortexProviderProps) {
       dispatch({ type: 'SET_JWT', payload: { jwt: response.jwt, user } });
       defaultConfig.onJwtRefresh?.(response.jwt);
 
-      // Schedule next refresh (without context for auto-refresh)
+      // Schedule next refresh (using stored context for auto-refresh)
       if (defaultConfig.refreshJwtInterval && refreshTimerRef.current) {
         clearTimeout(refreshTimerRef.current);
       }
 
       if (defaultConfig.refreshJwtInterval) {
-        refreshTimerRef.current = setTimeout(() => refreshJwt(), defaultConfig.refreshJwtInterval);
+        refreshTimerRef.current = setTimeout(() => refreshJwt(lastContextRef.current), defaultConfig.refreshJwtInterval);
       }
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Failed to refresh JWT');

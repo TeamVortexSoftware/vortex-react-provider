@@ -1,6 +1,15 @@
 # Vortex React Provider
 
+> ⚠️ **NOTICE**: This package is in maintenance mode. For new projects, we recommend using the simpler standalone pattern with `@teamvortexsoftware/vortex-react` directly. This provider adds unnecessary complexity for most use cases (single widget per app). See [Migration Guide](#migration-to-standalone-pattern) below.
+
 React provider for seamless Vortex integration with Next.js SDK. This package provides React components and hooks that work in conjunction with the Vortex Next.js SDK to simplify invitation management and JWT authentication in your React applications.
+
+**Use this package only if:**
+- ✅ You have multiple Vortex widgets across your app
+- ✅ You need centralized JWT management and automatic refresh
+- ✅ You're already using this package and don't want to migrate
+
+**For most users:** Use `@teamvortexsoftware/vortex-react` with manual JWT fetching instead.
 
 ## Installation
 
@@ -327,10 +336,113 @@ This package follows the security principles established by the Vortex Next.js S
 3. **Input sanitization**: All API calls are properly sanitized
 4. **Error boundaries**: Errors are contained and don't leak sensitive information
 
+## Migration to Standalone Pattern
+
+**Recommended for new projects and most existing projects.**
+
+### Before (with Provider):
+
+```tsx
+// app/layout.tsx
+import { VortexProvider } from '@teamvortexsoftware/vortex-react-provider';
+
+export default function RootLayout({ children }) {
+  return (
+    <VortexProvider config={{ apiBaseUrl: '/api/vortex' }}>
+      {children}
+    </VortexProvider>
+  );
+}
+
+// components/TeamInvite.tsx
+import { VortexInvite } from '@teamvortexsoftware/vortex-react';
+import { useVortexJWT } from '@teamvortexsoftware/vortex-react-provider';
+
+export function TeamInvite({ teamId }) {
+  const { jwt, isLoading } = useVortexJWT();
+
+  return (
+    <VortexInvite
+      componentId="team-widget"
+      jwt={jwt || ''}
+      isLoading={isLoading}
+      scope={teamId}
+      scopeType="team"
+    />
+  );
+}
+```
+
+### After (standalone - simpler):
+
+```tsx
+// No provider needed in layout!
+
+// components/TeamInvite.tsx
+import { VortexInvite } from '@teamvortexsoftware/vortex-react';
+import { useState, useEffect } from 'react';
+
+export function TeamInvite({ teamId }) {
+  const [jwt, setJwt] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/vortex/jwt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(res => res.json())
+      .then(data => {
+        setJwt(data.jwt);
+        setIsLoading(false);
+      })
+      .catch(error => {
+        console.error('Failed to fetch JWT:', error);
+        setIsLoading(false);
+      });
+  }, []);
+
+  return (
+    <VortexInvite
+      componentId="team-widget"
+      jwt={jwt}
+      isLoading={isLoading}
+      scope={teamId}
+      scopeType="team"
+    />
+  );
+}
+```
+
+### Migration Steps:
+
+1. **Remove provider dependency:**
+   ```bash
+   npm uninstall @teamvortexsoftware/vortex-react-provider
+   ```
+
+2. **Remove provider wrapper** from your layout/app file
+
+3. **Replace `useVortexJWT()` hook** with simple `useState` + `useEffect` pattern shown above
+
+4. **Test your widget** - it should work exactly the same
+
+### Benefits of Standalone Pattern:
+
+- ✅ **Simpler** - No provider, no context, just props
+- ✅ **Fewer dependencies** - One less package
+- ✅ **More explicit** - Clear data flow
+- ✅ **Easier to debug** - No magic behind the scenes
+- ✅ **Less cognitive load** - Standard React patterns
+
+### When to Keep Provider:
+
+Only keep the provider if you have **multiple widgets** that need to share JWT state across different parts of your app. For 90% of users with a single widget, the standalone pattern is better.
+
 ## Next Steps
 
 1. Set up the Vortex Next.js SDK backend routes
 2. Configure authentication and access control hooks
-3. Wrap your app with VortexProvider
-4. Use the appropriate hooks in your components
+3. ~~Wrap your app with VortexProvider~~ Use standalone pattern instead
+4. Implement JWT fetching in your component
 5. Handle errors appropriately for your UX
